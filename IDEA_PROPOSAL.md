@@ -1,7 +1,7 @@
 # 第7回 アイデア提案と企画書
 
-- 学籍番号：
-- 氏名：
+- 学籍番号：2432059
+- 氏名：平田琉翔
 - 提出日：2026-10-21
 - 提出file名：`IDEA_PROPOSAL.md`（作成するアプリのrepository直下に置き、commitして提出する）
 - 締切：**10/22（木）00:00**（第8回の講義日の0時）
@@ -190,4 +190,4 @@
 - [x] 企画書の入力・出力・DL部分・評価方法・MVPを書いた
 - [x] devとtestを分ける方法を書いた
 - [x] 作業計画とAI提案の採否を書いた
-- [ ] repository直下に `IDEA_PROPOSAL.md` として保存し、commitした
+- [x] repository直下に `IDEA_PROPOSAL.md` として保存し、commitした
