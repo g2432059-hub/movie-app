@@ -4,3 +4,4 @@ dla/
 models/
 .pytest_cache/
 *.pyc
+splits/*_inputs.json
