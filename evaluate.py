@@ -7,7 +7,7 @@ from typing import Any, Sequence
 import numpy as np
 import pandas as pd
 
-from data_utils import load_movies, load_ratings
+from data_utils import build_id_maps, load_movies, load_ratings
 from metrics import (
     genre_count,
     high_threshold,
@@ -177,7 +177,11 @@ def _model_predictions(
     """
     catalog = training_data["catalog"]
     movie_ids = np.asarray(
-        sorted(movie_id for movie_id in catalog if movie_id in training_data["item_counts"]),
+        sorted(
+            movie_id
+            for movie_id in catalog
+            if movie_id in training_data["item_counts"]
+        ),
         dtype=np.int64,
     )
 
@@ -185,7 +189,7 @@ def _model_predictions(
         loaded_model = load_model(model_name)
         movie_scores: dict[int, np.ndarray] = {}
         for user_id, user_data in split_data.items():
-            items = [tuple(row) for row in user_data["input"]]
+            items = [tuple(row) for row in user_data["_used_input"]]
             validate_inputs(items, model_name=model_name, loaded_model=loaded_model)
             item_idx = np.asarray(
                 [loaded_model.movie_to_index[movie_id] for movie_id, _ in items],
@@ -267,7 +271,8 @@ def _evaluate_configuration(
     excluded_eval_ratings = 0
 
     for user_id, user_data in split_data.items():
-        input_items = user_data["input"]
+        input_items = user_data["_used_input"]
+        original_input_items = user_data["input"]
         eval_items = user_data["eval"]
         eval_known = [
             (int(movie_id), int(rating))
@@ -283,7 +288,7 @@ def _evaluate_configuration(
             int(movie_id): float(score)
             for movie_id, score in zip(movie_ids, scores, strict=True)
         }
-        seen_ids = {int(movie_id) for movie_id, _ in input_items}
+        seen_ids = {int(movie_id) for movie_id, _ in original_input_items}
         candidates = [
             (
                 int(movie_id),
@@ -356,10 +361,11 @@ def _evaluate_configuration(
                 ),
                 "ジャンル数": user_genre_count,
                 "入力5本のうち4点以上の本数": sum(
-                    int(rating) >= 4 for _, rating in input_items
+                    int(rating) >= 4 for _, rating in original_input_items
                 ),
+                "入力に使った本数": len(input_items),
                 "入力の評価がすべて同じか": (
-                    len({int(rating) for _, rating in input_items}) == 1
+                    len({int(rating) for _, rating in original_input_items}) == 1
                 ),
             }
         )
@@ -406,6 +412,11 @@ def _evaluate_configuration(
         ),
         "train外映画数": len(catalog_movies - train_movies),
         "除外評価件数": excluded_eval_ratings,
+        "入力から除いた映画の延べ件数": training_data["input_movies_removed"],
+        "入力が減った利用者数": training_data["users_with_reduced_input"],
+        "入力3本未満で対象外にした利用者数": training_data[
+            "users_excluded_for_short_input"
+        ],
     }
     return summary, details
 
@@ -447,6 +458,36 @@ def run_evaluation(
     if not split_data:
         raise ValueError("評価対象の利用者がありません。")
     training_data = load_training_data()
+    movie_to_index, _, _, _ = build_id_maps(training_data["ratings"])
+    input_movies_removed = 0
+    users_with_reduced_input = 0
+    users_excluded_for_short_input = 0
+    eligible_split_data: dict[int, dict[str, Any]] = {}
+    for user_id, user_data in split_data.items():
+        original_input = user_data["input"]
+        used_input = [
+            (movie_id, rating)
+            for movie_id, rating in original_input
+            if movie_id in movie_to_index
+        ]
+        removed_count = len(original_input) - len(used_input)
+        input_movies_removed += removed_count
+        if removed_count:
+            users_with_reduced_input += 1
+        if len(used_input) < 3:
+            users_excluded_for_short_input += 1
+            continue
+        eligible_split_data[user_id] = {
+            **user_data,
+            "_used_input": used_input,
+        }
+    if not eligible_split_data:
+        raise ValueError("対応表にある入力映画が3本以上の利用者がいません。")
+    training_data["movie_to_index"] = movie_to_index
+    training_data["input_movies_removed"] = input_movies_removed
+    training_data["users_with_reduced_input"] = users_with_reduced_input
+    training_data["users_excluded_for_short_input"] = users_excluded_for_short_input
+    split_data = eligible_split_data
 
     if all_models:
         configurations = [
