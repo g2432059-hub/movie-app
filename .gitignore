@@ -5,3 +5,4 @@ models/
 .pytest_cache/
 *.pyc
 splits/*_inputs.json
+results/dev_details_*.csv
