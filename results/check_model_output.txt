@@ -7,7 +7,7 @@
   (Terminator 2: Judgment Day (1991), 4)
 変換後index: dtype=int64, shape=(5,); 評価: min=4.0, max=5.0
 fold-in損失: 最初=0.349100, 最後=0.185436
-生予測上位5件(movie_id, pred, genres):
+クリップ前の生予測上位5件(movie_id, pred, genres):
   (318, Shawshank Redemption, The (1994), 4.9761, ['Drama'])
   (1198, Raiders of the Lost Ark (1981), 4.8633, ['Action', 'Adventure'])
   (260, Star Wars: Episode IV - A New Hope (1977), 4.8627, ['Action', 'Adventure', 'Fantasy', 'Sci-Fi'])
@@ -25,4 +25,4 @@ recommend() 最終結果 上位5件 (lambda=0.25):
   (Usual Suspects, The (1995), 4.8603, ['Crime', 'Thriller'])
   (Close Shave, A (1995), 4.8368, ['Animation', 'Comedy', 'Thriller'])
   (Casablanca (1942), 4.7870, ['Drama', 'Romance', 'War'])
-fold-in + 全映画予測時間: 初回=2.537790秒, ウォームアップ後=0.130022秒
+fold-in + 全映画予測時間: 初回=2.571836秒, ウォームアップ後=0.146541秒
