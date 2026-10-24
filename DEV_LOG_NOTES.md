@@ -1,1 +1,7 @@
 # 開発記録のメモ(DEV_LOG.md を書くときの材料)
+
+## 2026-10-24 S5 make_split.py
+- 依頼: 利用者単位でtrain/dev/testに分け、dev/testの入力5本と評価用を作るscriptをCopilotに依頼
+- 問題: Copilotが「test_inputs.jsonを作るには、make_split.pyがtest利用者の評価を読む必要がある。CONTEXT.mdとプロンプトの例外の書き方が食い違っている」と質問した
+- 確認: test の中身は表示せず、人数と評価件数だけを出す条件で許可。sha256sumで2回の実行結果が一致、重なり0を確認
+- 修正: CONTEXT.mdとマニュアルの例外の書き方を、make_split.pyとevaluate.pyの両方に揃えた
