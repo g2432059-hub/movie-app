@@ -5,3 +5,7 @@
 - 問題: Copilotが「test_inputs.jsonを作るには、make_split.pyがtest利用者の評価を読む必要がある。CONTEXT.mdとプロンプトの例外の書き方が食い違っている」と質問した
 - 確認: test の中身は表示せず、人数と評価件数だけを出す条件で許可。sha256sumで2回の実行結果が一致、重なり0を確認
 - 修正: CONTEXT.mdとマニュアルの例外の書き方を、make_split.pyとevaluate.pyの両方に揃えた
+
+## 2026-10-24 S7-S8 学習結果(val: train利用者の評価の5%)
+- mean 0.9772 / MF 0.8556(7epoch) / NCF 0.8783(9epoch)。NCFはMFより約0.023悪い(調整は最小限)
+- 理由の候補: MLPが内積に劣る場合がある既知の報告(要確認)、NCFに偏りの項がない、調整不足
