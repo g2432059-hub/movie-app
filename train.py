@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from data_utils import build_id_maps, load_ratings
 from metrics import rmse_pooled
-from models import MF
+from models import MF, NCF
 
 
 DATA_DIR = Path("data/ml-1m")
@@ -79,8 +79,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     Returns:
         学習設定を格納したargparse.Namespace。
     """
-    parser = argparse.ArgumentParser(description="MovieLensのmeanまたはMFモデルを学習する")
-    parser.add_argument("--model", choices=("mean", "mf"), default="mf")
+    parser = argparse.ArgumentParser(
+        description="MovieLensのmean、MF、NCFモデルを学習する"
+    )
+    parser.add_argument("--model", choices=("mean", "mf", "ncf"), default="mf")
     parser.add_argument("--dim", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--lr", type=float, default=1e-3)
@@ -88,11 +90,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--batch", type=int, default=1024)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--shrink", type=float, default=10)
+    parser.add_argument("--dropout", type=float, default=0.1)
     args = parser.parse_args(argv)
     if args.dim <= 0 or args.epochs <= 0 or args.batch <= 0:
         parser.error("--dim, --epochs, and --batch must be positive")
     if args.lr <= 0 or args.wd < 0 or args.shrink < 0:
         parser.error("--lr must be positive and --wd/--shrink must be non-negative")
+    if not 0.0 <= args.dropout < 1.0:
+        parser.error("--dropout must be in [0, 1)")
     return args
 
 
@@ -400,8 +405,136 @@ def _run_mf(
     print(f"saved: {_save_checkpoint(checkpoint, 'mf')}")
 
 
+def _run_ncf(
+    train_ratings: pd.DataFrame,
+    val_ratings: pd.DataFrame,
+    user_to_index: dict[int, int],
+    index_to_user: dict[int, int],
+    movie_to_index: dict[int, int],
+    index_to_movie: dict[int, int],
+    dim: int,
+    epochs: int,
+    learning_rate: float,
+    weight_decay: float,
+    batch_size: int,
+    dropout: float,
+) -> None:
+    """NCFをAdamで学習し、最良val RMSEのcheckpointを保存する。
+
+    Args:
+        train_ratings: 学習に使う評価DataFrame。
+        val_ratings: 検証評価DataFrame。
+        user_to_index: 利用者IDからindexへの辞書。
+        index_to_user: indexから利用者IDへの辞書。
+        movie_to_index: 映画IDからindexへの辞書。
+        index_to_movie: indexから映画IDへの辞書。
+        dim: 埋め込み次元。
+        epochs: 最大epoch数。
+        learning_rate: Adamの学習率。
+        weight_decay: Adamのweight decay。
+        batch_size: ミニバッチサイズ。
+        dropout: MLP隠れ層のDropout率。
+
+    Returns:
+        None。
+    """
+    global_mean = float(train_ratings["rating"].mean())
+    model = NCF(
+        len(user_to_index),
+        len(movie_to_index),
+        dim,
+        global_mean,
+        dropout,
+    )
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=weight_decay,
+    )
+
+    train_tensors = _encode_ratings(train_ratings, user_to_index, movie_to_index)
+    val_tensors = _encode_ratings(val_ratings, user_to_index, movie_to_index)
+    train_loader = DataLoader(
+        TensorDataset(*train_tensors),
+        batch_size=batch_size,
+        shuffle=True,
+        generator=torch.Generator().manual_seed(torch.initial_seed()),
+    )
+
+    best_val_rmse = float("inf")
+    best_epoch = 0
+    best_state: dict[str, torch.Tensor] | None = None
+    epochs_without_improvement = 0
+    stopped_epoch = 0
+    val_users, val_items, val_trues = val_tensors
+
+    for epoch in range(1, epochs + 1):
+        model.train()
+        train_squared_error = 0.0
+        train_count = 0
+        for user_idx, item_idx, ratings in train_loader:
+            optimizer.zero_grad()
+            predictions = model(user_idx, item_idx)
+            loss = loss_fn(predictions, ratings)
+            loss.backward()
+            optimizer.step()
+            batch_count = len(ratings)
+            train_squared_error += float(loss.detach()) * batch_count
+            train_count += batch_count
+        train_mse = train_squared_error / train_count
+
+        model.eval()
+        with torch.no_grad():
+            val_preds = model(val_users, val_items)
+            val_rmse = rmse_pooled(
+                val_preds.cpu().numpy(),
+                val_trues.cpu().numpy(),
+            )
+
+        print(
+            f"epoch {epoch}/{epochs}: train MSE={train_mse:.6f}, "
+            f"val RMSE={val_rmse:.6f}"
+        )
+        stopped_epoch = epoch
+        if val_rmse < best_val_rmse:
+            best_val_rmse = val_rmse
+            best_epoch = epoch
+            best_state = copy.deepcopy(model.state_dict())
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+            if epochs_without_improvement >= EARLY_STOPPING_PATIENCE:
+                break
+
+    if best_state is None:
+        raise RuntimeError("NCF training did not produce a best checkpoint")
+    model.load_state_dict(best_state)
+    train_user_vec_mean = model.user_embedding.weight.detach().mean(dim=0).cpu()
+    train_counts = train_ratings["movie_id"].value_counts()
+    item_counts = np.zeros(len(movie_to_index), dtype=np.int64)
+    for movie_id, count in train_counts.items():
+        item_counts[movie_to_index[int(movie_id)]] = int(count)
+
+    print(f"best epoch: {best_epoch}; stopped epoch: {stopped_epoch}")
+    checkpoint = _make_checkpoint(
+        "ncf",
+        best_state,
+        user_to_index,
+        index_to_user,
+        movie_to_index,
+        index_to_movie,
+        global_mean,
+        item_counts,
+        train_user_vec_mean,
+        dim=dim,
+        dropout=dropout,
+    )
+    print(f"saved: {_save_checkpoint(checkpoint, 'ncf')}")
+
+
 def main(argv: Sequence[str] | None = None) -> None:
-    """train利用者データでmeanまたはMFを学習して保存する。
+    """train利用者データでmean、MFまたはNCFを学習して保存する。
 
     Args:
         argv: コマンドライン引数。Noneならsys.argvを使う。
@@ -448,7 +581,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             index_to_user,
             args.shrink,
         )
-    else:
+    elif args.model == "mf":
         _run_mf(
             train_ratings,
             val_ratings,
@@ -461,6 +594,21 @@ def main(argv: Sequence[str] | None = None) -> None:
             args.lr,
             args.wd,
             args.batch,
+        )
+    else:
+        _run_ncf(
+            train_ratings,
+            val_ratings,
+            user_to_index,
+            index_to_user,
+            movie_to_index,
+            index_to_movie,
+            args.dim,
+            args.epochs,
+            args.lr,
+            args.wd,
+            args.batch,
+            args.dropout,
         )
 
 

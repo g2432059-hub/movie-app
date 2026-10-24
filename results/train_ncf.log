@@ -1,0 +1,15 @@
+train users: 4832, train ratings: 765163, val ratings: 40271
+epoch 1/30: train MSE=0.905939, val RMSE=0.906751
+epoch 2/30: train MSE=0.816213, val RMSE=0.898313
+epoch 3/30: train MSE=0.801052, val RMSE=0.893426
+epoch 4/30: train MSE=0.787419, val RMSE=0.889312
+epoch 5/30: train MSE=0.772515, val RMSE=0.881940
+epoch 6/30: train MSE=0.758711, val RMSE=0.880747
+epoch 7/30: train MSE=0.747740, val RMSE=0.878484
+epoch 8/30: train MSE=0.737666, val RMSE=0.879584
+epoch 9/30: train MSE=0.726603, val RMSE=0.878294
+epoch 10/30: train MSE=0.715583, val RMSE=0.879489
+epoch 11/30: train MSE=0.703279, val RMSE=0.879186
+epoch 12/30: train MSE=0.691529, val RMSE=0.879857
+best epoch: 9; stopped epoch: 12
+saved: models/ncf.pt
