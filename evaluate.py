@@ -204,7 +204,7 @@ def _model_predictions(
                 item_idx,
                 input_ratings,
             )
-            predictions = predict_ratings(loaded_model, user_params)
+            predictions = predict_ratings(loaded_model, user_params, clip=False)
             movie_scores[user_id] = np.asarray(
                 [
                     predictions[loaded_model.movie_to_index[int(movie_id)]]
@@ -342,6 +342,8 @@ def _evaluate_configuration(
         user_trues: list[float] = []
         if predictive:
             user_preds = [score_by_movie[movie_id] for movie_id in eval_ids]
+            if model_name in {"mf", "ncf"}:
+                user_preds = np.clip(user_preds, 1.0, 5.0).tolist()
             user_trues = [float(rating) for rating in eval_ratings]
             if user_trues:
                 pooled_preds.extend(user_preds)

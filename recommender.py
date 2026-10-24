@@ -250,15 +250,18 @@ def fold_in_user(
 def predict_ratings(
     model: LoadedModel,
     user_params: dict[str, torch.Tensor],
+    clip: bool = True,
 ) -> np.ndarray:
-    """全映画の評価を予測し、1〜5にclipした配列を返す。
+    """全映画の評価を予測し、必要なら1〜5にclipした配列を返す。
 
     Args:
         model: load_model()が返すモデル情報。
         user_params: fold_in_user()が返す利用者パラメータ辞書。
+        clip: Trueなら予測値を1〜5にclipする。
 
     Returns:
-        映画index順のfloat32予測評価配列。推論時はmodelがeval()であること。
+        映画index順のfloat32予測評価配列。clip=Falseなら生の値を返す。
+        推論時はmodelがeval()であること。
     """
     model.model.eval()
     item_idx = torch.arange(len(model.movie_to_index), dtype=torch.long)
@@ -274,7 +277,9 @@ def predict_ratings(
                 user_params["user_vec"],
                 item_idx,
             )
-    return torch.clamp(predictions, min=1.0, max=5.0).cpu().numpy()
+    if clip:
+        predictions = torch.clamp(predictions, min=1.0, max=5.0)
+    return predictions.cpu().numpy()
 
 
 def rerank(
@@ -384,7 +389,7 @@ def recommend(
         item_idx,
         ratings,
     )
-    raw_predictions = _raw_predictions(model, user_params)
+    raw_predictions = predict_ratings(model, user_params, clip=False)
     predictions = np.clip(raw_predictions, 1.0, 5.0)
 
     if debug:
@@ -416,10 +421,14 @@ def recommend(
         if movie_data is None:
             continue
         title, genres = movie_data
-        candidates.append((movie_id, float(predictions[index]), genres))
+        candidates.append((movie_id, float(raw_predictions[index]), genres))
 
     selected = rerank(candidates, lam, k=10)
     return [
-        (model.movie_catalog[movie_id][0], pred, list(genres))
-        for movie_id, pred, genres in selected
+        (
+            model.movie_catalog[movie_id][0],
+            float(predictions[model.movie_to_index[movie_id]]),
+            list(genres),
+        )
+        for movie_id, _, genres in selected
     ]

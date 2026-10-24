@@ -222,7 +222,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         item_idx,
         ratings,
     )
-    first_raw_predictions = _raw_predictions(model, user_params)
+    first_raw_predictions = predict_ratings(model, user_params, clip=False)
     first_elapsed = time.perf_counter() - start
 
     warm_start = time.perf_counter()
@@ -236,7 +236,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     warm_elapsed = time.perf_counter() - warm_start
 
     print(f"fold-in損失: 最初={initial_loss:.6f}, 最後={final_loss:.6f}")
-    print("生予測上位5件(movie_id, pred, genres):")
+    print("クリップ前の生予測上位5件(movie_id, pred, genres):")
     top_indices = sorted(
         range(len(first_raw_predictions)),
         key=lambda index: (
