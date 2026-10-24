@@ -1,0 +1,13 @@
+train users: 4832, train ratings: 765163, val ratings: 40271
+epoch 1/20: train MSE=1.103563, val RMSE=0.989879
+epoch 2/20: train MSE=0.865405, val RMSE=0.902363
+epoch 3/20: train MSE=0.759298, val RMSE=0.878281
+epoch 4/20: train MSE=0.707284, val RMSE=0.866786
+epoch 5/20: train MSE=0.668496, val RMSE=0.860405
+epoch 6/20: train MSE=0.636669, val RMSE=0.856959
+epoch 7/20: train MSE=0.609699, val RMSE=0.855597
+epoch 8/20: train MSE=0.586667, val RMSE=0.855985
+epoch 9/20: train MSE=0.566918, val RMSE=0.856870
+epoch 10/20: train MSE=0.550217, val RMSE=0.858615
+best epoch: 7; stopped epoch: 10
+saved: models/mf.pt
