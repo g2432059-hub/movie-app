@@ -33,7 +33,7 @@ def test_ncf_evaluation_ranks_raw_scores_and_clips_rmse(monkeypatch):
     monkeypatch.setattr(
         evaluate,
         "fold_in_user",
-        lambda model, item_idx, ratings: ({}, 0.0, 0.0),
+        lambda model, item_idx, ratings, **kwargs: ({}, 0.0, 0.0),
     )
 
     def fake_predict_ratings(model, user_params, clip=True):
@@ -74,3 +74,62 @@ def test_ncf_evaluation_ranks_raw_scores_and_clips_rmse(monkeypatch):
     assert ranked_movie_ids == [5, 4]
     assert summary["RMSE pooled"] == 0.0
     assert details[0]["RMSE"] == 0.0
+
+
+def test_fold_in_arguments_are_parsed_and_passed_to_fold_in_user(monkeypatch):
+    defaults = evaluate.parse_args(["splits/dev"])
+    assert (defaults.fold_l2, defaults.fold_steps, defaults.fold_lr) == (
+        0.01,
+        50,
+        0.05,
+    )
+    args = evaluate.parse_args(
+        [
+            "splits/dev",
+            "--fold-l2",
+            "0.2",
+            "--fold-steps",
+            "12",
+            "--fold-lr",
+            "0.1",
+        ]
+    )
+    loaded_model = SimpleNamespace(
+        movie_to_index={1: 0, 2: 1, 3: 2},
+    )
+    monkeypatch.setattr(evaluate, "load_model", lambda name: loaded_model)
+    monkeypatch.setattr(evaluate, "validate_inputs", lambda *args, **kwargs: None)
+    fold_in_calls = []
+
+    def fake_fold_in_user(model, item_idx, ratings, **kwargs):
+        fold_in_calls.append(kwargs)
+        return {}, 0.0, 0.0
+
+    monkeypatch.setattr(evaluate, "fold_in_user", fake_fold_in_user)
+    monkeypatch.setattr(
+        evaluate,
+        "predict_ratings",
+        lambda model, user_params, clip=True: np.asarray([3.0, 4.0, 5.0]),
+    )
+
+    evaluate._model_predictions(
+        "ncf",
+        {
+            7: {
+                "_used_input": [[1, 5], [2, 4], [3, 3]],
+            }
+        },
+        {
+            "catalog": {
+                1: ("A", ["Drama"]),
+                2: ("B", ["Drama"]),
+                3: ("C", ["Drama"]),
+            },
+            "item_counts": {1: 1, 2: 1, 3: 1},
+        },
+        fold_l2=args.fold_l2,
+        fold_steps=args.fold_steps,
+        fold_lr=args.fold_lr,
+    )
+
+    assert fold_in_calls == [{"l2": 0.2, "steps": 12, "lr": 0.1}]

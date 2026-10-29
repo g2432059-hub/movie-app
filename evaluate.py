@@ -40,7 +40,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         argv: 引数列。Noneならsys.argvを使う。
 
     Returns:
-        split、model、lam、limit、all設定のNamespace。
+        split、model、lam、limit、all、fold-in設定のNamespace。
     """
     parser = argparse.ArgumentParser(description="MovieLens推薦モデルを評価する")
     parser.add_argument("split", type=Path, help="評価する分割 (例: splits/dev)")
@@ -52,11 +52,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--lam", type=float, default=0.25)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--all", action="store_true", help="全モデルと指定λを評価")
+    parser.add_argument("--fold-l2", type=float, default=0.01)
+    parser.add_argument("--fold-steps", type=int, default=50)
+    parser.add_argument("--fold-lr", type=float, default=0.05)
     args = parser.parse_args(argv)
     if args.lam < 0:
         parser.error("--lam must be non-negative")
     if args.limit is not None and args.limit <= 0:
         parser.error("--limit must be positive")
+    if args.fold_l2 < 0:
+        parser.error("--fold-l2 must be non-negative")
+    if args.fold_steps <= 0:
+        parser.error("--fold-steps must be positive")
+    if args.fold_lr <= 0:
+        parser.error("--fold-lr must be positive")
     return args
 
 
@@ -163,6 +172,9 @@ def _model_predictions(
     split_data: dict[int, dict[str, list[list[int]]]],
     training_data: dict[str, Any],
     seed: int = SEED,
+    fold_l2: float = 0.01,
+    fold_steps: int = 50,
+    fold_lr: float = 0.05,
 ) -> tuple[dict[int, tuple[np.ndarray, np.ndarray]], LoadedModel | None]:
     """モデル別に映画スコアを作り、MF/NCFのfold-inは各利用者一度だけ行う。
 
@@ -171,6 +183,9 @@ def _model_predictions(
         split_data: 評価対象の利用者ごとのinput/evalデータ。
         training_data: train評価から作成した映画統計。
         seed: random順位の固定seed。
+        fold_l2: fold-inの正則化係数。
+        fold_steps: fold-inの更新回数。
+        fold_lr: fold-inの学習率。
 
     Returns:
         user_idごとの映画ID→score配列と、読込済みMF/NCFモデル。
@@ -203,6 +218,9 @@ def _model_predictions(
                 loaded_model,
                 item_idx,
                 input_ratings,
+                l2=fold_l2,
+                steps=fold_steps,
+                lr=fold_lr,
             )
             predictions = predict_ratings(loaded_model, user_params, clip=False)
             movie_scores[user_id] = np.asarray(
@@ -430,6 +448,9 @@ def run_evaluation(
     limit: int | None = None,
     all_models: bool = False,
     confirm_test: bool = True,
+    fold_l2: float = 0.01,
+    fold_steps: int = 50,
+    fold_lr: float = 0.05,
 ) -> list[dict[str, Any]]:
     """指定分割を評価して表・CSVを保存する。
 
@@ -440,6 +461,9 @@ def run_evaluation(
         limit: 先頭N人だけを評価する上限。
         all_models: --all相当なら全ベースラインとNCFの全λを実行する。
         confirm_test: test評価前に確認を表示するか。
+        fold_l2: fold-inの正則化係数。
+        fold_steps: fold-inの更新回数。
+        fold_lr: fold-inの学習率。
 
     Returns:
         表示・保存したサマリー辞書のリスト。test確認でnoの場合は空リスト。
@@ -505,6 +529,9 @@ def run_evaluation(
             split_data,
             training_data,
             seed=SEED,
+            fold_l2=fold_l2,
+            fold_steps=fold_steps,
+            fold_lr=fold_lr,
         )
 
     summaries: list[dict[str, Any]] = []
@@ -520,8 +547,15 @@ def run_evaluation(
             loaded_model,
         )
         summary["split"] = split_name
+        summary["fold_l2"] = fold_l2
+        summary["fold_steps"] = fold_steps
+        summary["fold_lr"] = fold_lr
         summaries.append(summary)
         if split_name.lower().startswith("dev"):
+            for detail in details:
+                detail["fold_l2"] = fold_l2
+                detail["fold_steps"] = fold_steps
+                detail["fold_lr"] = fold_lr
             detail_outputs.append((current_model, current_lam, details))
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -551,7 +585,10 @@ def run_evaluation(
         log_path = RESULTS_DIR / "test_runs.log"
         run_time = datetime.now().astimezone().isoformat(timespec="seconds")
         with log_path.open("a", encoding="utf-8") as log_file:
-            log_file.write(f"{run_time}\t{model_lambdas}\n")
+            log_file.write(
+                f"{run_time}\t{model_lambdas}"
+                f"\tfold_l2={fold_l2:g},fold_steps={fold_steps},fold_lr={fold_lr:g}\n"
+            )
     return summaries
 
 
@@ -575,6 +612,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         lam=args.lam,
         limit=args.limit,
         all_models=args.all,
+        fold_l2=args.fold_l2,
+        fold_steps=args.fold_steps,
+        fold_lr=args.fold_lr,
     )
 
 
