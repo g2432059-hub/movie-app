@@ -6,23 +6,23 @@
   (Matrix, The (1999), 4)
   (Terminator 2: Judgment Day (1991), 4)
 変換後index: dtype=int64, shape=(5,); 評価: min=4.0, max=5.0
-fold-in損失: 最初=0.349100, 最後=0.185436
+fold-in損失: 最初=0.349100, 最後=0.256939
 クリップ前の生予測上位5件(movie_id, pred, genres):
-  (318, Shawshank Redemption, The (1994), 4.9761, ['Drama'])
-  (1198, Raiders of the Lost Ark (1981), 4.8633, ['Action', 'Adventure'])
-  (260, Star Wars: Episode IV - A New Hope (1977), 4.8627, ['Action', 'Adventure', 'Fantasy', 'Sci-Fi'])
-  (50, Usual Suspects, The (1995), 4.8603, ['Crime', 'Thriller'])
-  (2905, Sanjuro (1962), 4.8414, ['Action', 'Adventure'])
+  (318, Shawshank Redemption, The (1994), 4.8609, ['Drama'])
+  (1198, Raiders of the Lost Ark (1981), 4.7479, ['Action', 'Adventure'])
+  (858, Godfather, The (1972), 4.7179, ['Action', 'Crime', 'Drama'])
+  (260, Star Wars: Episode IV - A New Hope (1977), 4.6940, ['Action', 'Adventure', 'Fantasy', 'Sci-Fi'])
+  (527, Schindler's List (1993), 4.6914, ['Drama', 'War'])
 recommend() 最終結果 上位5件 (lambda=0):
-  (Shawshank Redemption, The (1994), 4.9761, ['Drama'])
-  (Raiders of the Lost Ark (1981), 4.8633, ['Action', 'Adventure'])
-  (Usual Suspects, The (1995), 4.8603, ['Crime', 'Thriller'])
-  (Sanjuro (1962), 4.8414, ['Action', 'Adventure'])
-  (Godfather, The (1972), 4.8389, ['Action', 'Crime', 'Drama'])
+  (Shawshank Redemption, The (1994), 4.8609, ['Drama'])
+  (Raiders of the Lost Ark (1981), 4.7479, ['Action', 'Adventure'])
+  (Godfather, The (1972), 4.7179, ['Action', 'Crime', 'Drama'])
+  (Schindler's List (1993), 4.6914, ['Drama', 'War'])
+  (Sanjuro (1962), 4.6764, ['Action', 'Adventure'])
 recommend() 最終結果 上位5件 (lambda=0.25):
-  (Shawshank Redemption, The (1994), 4.9761, ['Drama'])
-  (Raiders of the Lost Ark (1981), 4.8633, ['Action', 'Adventure'])
-  (Usual Suspects, The (1995), 4.8603, ['Crime', 'Thriller'])
-  (Close Shave, A (1995), 4.8368, ['Animation', 'Comedy', 'Thriller'])
-  (Casablanca (1942), 4.7870, ['Drama', 'Romance', 'War'])
-fold-in + 全映画予測時間: 初回=2.571836秒, ウォームアップ後=0.146541秒
+  (Shawshank Redemption, The (1994), 4.8609, ['Drama'])
+  (Raiders of the Lost Ark (1981), 4.7479, ['Action', 'Adventure'])
+  (Close Shave, A (1995), 4.6720, ['Animation', 'Comedy', 'Thriller'])
+  (For All Mankind (1989), 4.5803, ['Documentary'])
+  (Schindler's List (1993), 4.6914, ['Drama', 'War'])
+fold-in + 全映画予測時間: 初回=2.734062秒, ウォームアップ後=0.125152秒

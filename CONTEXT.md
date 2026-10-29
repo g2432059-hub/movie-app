@@ -28,3 +28,5 @@ cat > CONTEXT.md <<'EOF'
 - data/ml-1m/ratings.dat, movies.dat (区切りは "::")
 - 分割: 利用者単位で train80% / dev10% / test10% (seed42)。dev/testは各利用者の評価から5本を入力用、残りを評価用
 - early stopping は train 利用者の評価の5%を検証用(val)として取り分けて行う
+
+- `python evaluate.py splits/test` は、人間だけが実行する。Copilot は実行しない。`yes |` のようなパイプで確認を自動で通さない。
