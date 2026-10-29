@@ -1,3 +1,4 @@
+import inspect
 from types import SimpleNamespace
 
 import numpy as np
@@ -6,6 +7,10 @@ import torch
 
 import recommender
 from recommender import predict_ratings, recommend, rerank, validate_inputs
+
+
+def test_fold_in_user_defaults_to_l2_one():
+    assert inspect.signature(recommender.fold_in_user).parameters["l2"].default == 1.0
 
 
 @pytest.fixture

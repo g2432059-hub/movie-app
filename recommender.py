@@ -173,7 +173,7 @@ def fold_in_user(
     ratings: Sequence[float] | np.ndarray | torch.Tensor,
     steps: int = 50,
     lr: float = 0.05,
-    l2: float = 0.01,
+    l2: float = 1.0,
 ) -> tuple[dict[str, torch.Tensor], float, float]:
     """モデル本体を固定し、入力評価に合わせた利用者パラメータを最適化する。
 

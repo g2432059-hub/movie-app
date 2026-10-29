@@ -79,7 +79,7 @@ def test_ncf_evaluation_ranks_raw_scores_and_clips_rmse(monkeypatch):
 def test_fold_in_arguments_are_parsed_and_passed_to_fold_in_user(monkeypatch):
     defaults = evaluate.parse_args(["splits/dev"])
     assert (defaults.fold_l2, defaults.fold_steps, defaults.fold_lr) == (
-        0.01,
+        1.0,
         50,
         0.05,
     )
@@ -87,7 +87,7 @@ def test_fold_in_arguments_are_parsed_and_passed_to_fold_in_user(monkeypatch):
         [
             "splits/dev",
             "--fold-l2",
-            "0.2",
+            "0.01",
             "--fold-steps",
             "12",
             "--fold-lr",
@@ -132,4 +132,4 @@ def test_fold_in_arguments_are_parsed_and_passed_to_fold_in_user(monkeypatch):
         fold_lr=args.fold_lr,
     )
 
-    assert fold_in_calls == [{"l2": 0.2, "steps": 12, "lr": 0.1}]
+    assert fold_in_calls == [{"l2": 0.01, "steps": 12, "lr": 0.1}]

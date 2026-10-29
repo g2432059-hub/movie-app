@@ -52,7 +52,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--lam", type=float, default=0.25)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--all", action="store_true", help="全モデルと指定λを評価")
-    parser.add_argument("--fold-l2", type=float, default=0.01)
+    parser.add_argument("--fold-l2", type=float, default=1.0)
     parser.add_argument("--fold-steps", type=int, default=50)
     parser.add_argument("--fold-lr", type=float, default=0.05)
     args = parser.parse_args(argv)
@@ -172,7 +172,7 @@ def _model_predictions(
     split_data: dict[int, dict[str, list[list[int]]]],
     training_data: dict[str, Any],
     seed: int = SEED,
-    fold_l2: float = 0.01,
+    fold_l2: float = 1.0,
     fold_steps: int = 50,
     fold_lr: float = 0.05,
 ) -> tuple[dict[int, tuple[np.ndarray, np.ndarray]], LoadedModel | None]:
@@ -448,7 +448,7 @@ def run_evaluation(
     limit: int | None = None,
     all_models: bool = False,
     confirm_test: bool = True,
-    fold_l2: float = 0.01,
+    fold_l2: float = 1.0,
     fold_steps: int = 50,
     fold_lr: float = 0.05,
 ) -> list[dict[str, Any]]:
