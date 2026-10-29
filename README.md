@@ -18,6 +18,14 @@ source dla/bin/activate
 pip install -r requirements.txt
 ```
 
+動作確認した版(WSL2 / Ubuntu、CPU): torch 2.14.1+cpu、numpy 2.5.4、pandas 3.1.0、streamlit 1.66.1、pytest 9.1.1。`requirements.txt` は直接使うパッケージだけを列挙していて、版は固定していません。
+
+CPU だけの環境で、軽量版の PyTorch を入れる場合は、`pip install -r requirements.txt` の前に、次を実行してください(任意)。
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+```
+
 ## MovieLens 1M データの取得
 
 1. [MovieLens 1M の公式ページ](https://grouplens.org/datasets/movielens/1m/)から `ml-1m.zip` をダウンロードします。
