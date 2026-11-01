@@ -9,7 +9,8 @@
 
 ## 1. 概要
 
-- アプリ名：映画のおすすめ（MovieLens 1M を使った映画推薦）
+- アプリ名：個人向けおすすめ映画出力アプリ（MovieLens 1M を使った映画推薦。画面上の見出しは「映画のおすすめ」）
+- デモ動画：`DemoVideo_titled.mp4`（約1分半、字幕のみ。成功例1・失敗例1。提出方法は課題の指示に従う）
 - 概要：見た映画と評価を3本以上入力すると、NCF（深層学習）で評価を予測し、ジャンル多様性の再ランキング（重みλ）をかけた映画10本を表示する。
 - repository と final commit：GitHub `g2432059-hub/movie-app`、final commit 【11/3に `git log -1 --oneline` で記入】
 - 実行手順：`README.md`
@@ -82,13 +83,13 @@ test 604人（2回目、commit d672e65、`results/test_run2_after.txt`）。RMSE
 
 ## 8. 成功例と失敗例
 
-入力（評価）：**A**＝Toy Story・Aladdin・Beauty and the Beast・Wallace & Gromit: The Best of Aardman Animation=5、Snow White and the Seven Dwarfs=4。**B**＝Star Wars IV・V・VI=5、Matrix・Terminator 2=4。**C**＝Toy Story・Aladdin・Beauty and the Beast=5、Star Wars IV・Terminator 2=1。**D**＝C の評価を反転（Star Wars IV・Terminator 2=5、アニメ3本=1）。画面での確認（11/1、既定設定）。
+入力（評価）：**A**＝Toy Story・Aladdin・Beauty and the Beast・Wallace & Gromit: The Best of Aardman Animation=5、Snow White and the Seven Dwarfs=4。**B**＝Star Wars IV・V・VI=5、Matrix・Terminator 2=4。**C**（10本）＝アニメ5本（Toy Story・Aladdin・Beauty and the Beast・Wallace & Gromit: The Best of Aardman Animation・Snow White and the Seven Dwarfs）=5、SF・アクション5本（Star Wars IV・V・VI・Matrix・Terminator 2）=1。**D**（10本）＝C の評価を反転（アニメ5本=1、SF・アクション5本=5）。C・Dはデモ動画と同じ入力。画面での確認（11/1、既定設定）。
 
 | 例 | 条件 | 結果 | 原因と考える処理 |
 |---|---|---|---|
 | 成功1 | B、λ=0→0.5 | ジャンル数 9→16。Documentary・Film-Noir・Musical・Western・Horror が入る。代わりに10位の予測評価は 4.63→4.28。A でも 10（表から数えた値）→16 | 後処理：再ランキング（予測評価＋λ×新しいジャンルの割合）。順位づけだけを変える |
 | 成功2 | A、λ=0.25 | 修正前（10/24）：上位10件のうち9件が5.00。修正後：2件（Shawshank、Raiders）で、他は 4.71〜4.99 | 後処理：順位づけをクリップ前の値にし、fold-inのl2を強めた。上位2件は5.00のまま残る |
-| 失敗1 | A〜D、λ=0 | AとB（高評価のみ）は9件が共通。評価を反転したCとDは4件が共通で、CはAと1件、DはBと3件しか共通しない（低い評価で結果は変わる）。ただし好みの向きに合わない：アニメ好きのCにAnimationは0本、嫌いのDに1本（A Close Shave）。Sci-FiはC・Dとも1本、B（SF中心）は0本 | モデル：fold-inは評価の高低には反応するが、ジャンルの好みは学習しない（NCFはジャンルを入力に使わない。推測）。映画ごとの評価の高さが強く出ている可能性、l2が強すぎる可能性は未検証 |
+| 失敗1 | A〜D、λ=0 | AとB（高評価のみ）は9件が共通。評価を反転したCとDは4件が共通（低い評価で結果は変わる）。ただし好みの向きに合わない：アニメ好きのCにAnimationは0本（ジャンル数8）、嫌いのDに1本（ジャンル数10）。Sci-FiはC・Dとも1本、B（SF中心）は0本 | モデル：fold-inは評価の高低には反応するが、ジャンルの好みは学習しない（NCFはジャンルを入力に使わない。推測）。映画ごとの評価の高さが強く出ている可能性、l2が強すぎる可能性は未検証 |
 | 失敗2 | 入力のうち4点以上が0〜1本の利用者（dev 74人） | RMSE：平均評価1.101、MF 1.040、NCF 1.090（高評価寄りでは 0.930、0.878、0.886） | モデル：NCFは利用者の評価水準（バイアス）を持たない（仮説、未検証） |
 
 - 成功1・2と失敗1は、少数の入力での観察で、一般的な性能は6章のtest。成功2の修正前の入力は記録（DEV_LOG_NOTES.md）による。
@@ -112,6 +113,7 @@ test 604人（2回目、commit d672e65、`results/test_run2_after.txt`）。RMSE
 
 - 役に立つ条件：入力の評価が高い利用者（dev：NCFのRMSE 0.886、平均評価 0.930）。ジャンルの幅を広げたい場合（成功1）。
 - 失敗する条件：NCFはMF・人気順に劣る（test）。ジャンルの好みを反映しにくい（失敗1）。低評価寄りの入力でRMSEが悪い（失敗2）。データは2000〜2003年で、新しい映画は扱えない。testは同じデータセットの別の利用者で、他の環境での性能は示せない。信頼区間は未計算。
+- 再現性：README の手順で再学習すると、MF・mean は元の結果と一致したが、NCF は検証RMSEが 0.8783（9エポック）と 0.8786（7エポック）で少し異なる（同じ環境で2回学習すると同じ結果）。原因は未確認。本報告の数値は、元のモデルによる。傾向（ジャンル数 9→16、NCFがMF・人気順に届かない）は再学習後も同じだった。
 - 今後：ジャンルを入力に使う手法との比較、NCFに利用者バイアスを加える、l2の探索範囲の拡大、入力本数を増やした評価。
 
 ## 11. 生成AIの利用
