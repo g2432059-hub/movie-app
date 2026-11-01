@@ -105,6 +105,13 @@ test の評価は人間だけが実行し、運用上2回までにしてくだ�
 
 fold-in と λ の設定・決定根拠は [`docs/DEFAULT_LAMBDA.md`](docs/DEFAULT_LAMBDA.md) と [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) を参照してください。
 
+## 再現性の注意
+
+- `python train.py --model ncf` は、WSL2のCPUで約4分かかる。
+- 同じ環境で再学習すると、同じ結果になる。ただし、`results/` に置いた元のモデルとは、NCFの検証RMSEが少し異なる（元：0.8783、再学習：0.8786）。MF・平均評価は元の結果と一致する。
+- 傾向（λを上げるとジャンル数が増える、NCFがMF・人気順に届かない）は、再学習後も同じだった。
+- REPORTの数値は、元のモデルによる。
+
 ## テスト
 
 ```bash
