@@ -12,7 +12,7 @@
 - アプリ名：個人向けおすすめ映画出力アプリ（MovieLens 1M を使った映画推薦。画面上の見出しは「映画のおすすめ」）
 - デモ動画：`DemoVideo_titled.mp4`（約1分半、字幕のみ。成功例1・失敗例1。提出方法は課題の指示に従う）
 - 概要：見た映画と評価を3本以上入力すると、NCF（深層学習）で評価を予測し、ジャンル多様性の再ランキング（重みλ）をかけた映画10本を表示する。
-- repository と final commit：GitHub `g2432059-hub/movie-app`、final commit `bfb358f`（REPORT.md追加の直前のcommit）
+- repository と final commit：GitHub `g2432059-hub/movie-app`、final commit `bfb358f`（このfinal commit欄の記入commitの直前のcommit）
 - 実行手順：`README.md`
 
 ## 2. 問題設定と利用場面
